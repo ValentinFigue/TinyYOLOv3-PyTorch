@@ -70,8 +70,10 @@ def parse_args():
 
     # model loading:
     # both:
-    parser.add_argument('--weight-path', dest='weight_path', type=str, default='../weights/yolov3_original.pt',
-                        help="The path to weights file for inference or finetune training.")
+    # parser.add_argument('--weight-path', dest='weight_path', type=str, default='../weights/yolov3_original.pt',
+    #                     help="The path to weights file for inference or finetune training.")
+    parser.add_argument('--weight-path', dest='weight_path', type=str, default=None,
+                                             help="The path to weights file for inference or finetune training.")
     parser.add_argument('--cpu-only', dest='cpu_only', action='store_true',
                         help="Use CPU only no matter whether GPU is available.")
     parser.add_argument('--from-ckpt', dest='from_ckpt', action='store_true',
@@ -149,9 +151,11 @@ def config_device(cpu_only: bool):
 def load_tiny_yolov3_model(weight_path, device, ckpt=False, mode='eval'):
     _model = TinyYoloNetV3(nms=True)
     if not ckpt:
-        _model.load_state_dict(torch.load(weight_path))
+        if weight_path is not None :
+            _model.load_state_dict(torch.load(weight_path))
     else:
-        _model.load_state_dict(torch.load(weight_path)['model_state_dict'])
+        if weight_path is not None :
+            _model.load_state_dict(torch.load(weight_path)['model_state_dict'])
     _model.to(device)
     if mode == 'eval':
         _model.eval()
