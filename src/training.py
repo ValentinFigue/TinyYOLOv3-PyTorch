@@ -32,7 +32,7 @@ from config import NOOBJ_COEFF, COORD_COEFF, IGNORE_THRESH, ANCHORS, EPSILON
 Tensor = torch.Tensor
 
 
-def yolo_loss_fn(preds: Tensor, tgt: Tensor, tgt_len: Tensor, img_size: int, average=True):
+def tiny_yolo_loss_fn(preds: Tensor, tgt: Tensor, tgt_len: Tensor, img_size: int, average=True):
     """Calculate the loss function given the predictions, the targets, the length of each target and the image size.
     Args:
         preds: (Tensor) the raw prediction tensor. Size is [B, N_PRED, NUM_ATTRIB],
@@ -144,18 +144,16 @@ def pre_process_targets(tgt: Tensor, tgt_len, img_size):
     _, idx_anchor = torch.max(iou_anchor_tgt, dim=1)
 
     # find the corresponding prediction's index for the anchor box with the max IOU
-    strides_selection = [8, 16, 32]
+    strides_selection = [16, 32]
     scale = idx_anchor // 3
     idx_anchor_by_scale = idx_anchor - scale * 3
-    stride = 8 * 2 ** scale
+    stride = 16 * 2 ** scale
     grid_x = (tgt[..., 0] // stride.float()).long()
     grid_y = (tgt[..., 1] // stride.float()).long()
     n_grid = img_size // stride
-    large_scale_mask = (scale <= 1).long()
-    med_scale_mask = (scale <= 0).long()
+    large_scale_mask = (scale <= 0).long()
     idx_obj = \
-        large_scale_mask * (img_size // strides_selection[2]) ** 2 * 3 + \
-        med_scale_mask * (img_size // strides_selection[1]) ** 2 * 3 + \
+        large_scale_mask * (img_size // strides_selection[1]) ** 2 * 3 + \
         n_grid ** 2 * idx_anchor_by_scale + n_grid * grid_y + grid_x
 
     # calculate t_x and t_y

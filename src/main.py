@@ -40,8 +40,8 @@ from datasets.image import ImageFolder
 from datasets.caltech import CaltechPedDataset
 from datasets.coco import CocoDetectionBoundingBox
 from inference import post_process
-from model import YoloNetV3
-from training import yolo_loss_fn
+from model import TinyYoloNetV3
+from training import tiny_yolo_loss_fn
 from utils import load_classes, untransform_bboxes, add_coco_empty_category, cxcywh_to_xywh, init_layer_randomly, draw_result
 
 
@@ -146,8 +146,8 @@ def config_device(cpu_only: bool):
     return _device
 
 
-def load_yolov3_model(weight_path, device, ckpt=False, mode='eval'):
-    _model = YoloNetV3(nms=True)
+def load_tiny_yolov3_model(weight_path, device, ckpt=False, mode='eval'):
+    _model = TinyYoloNetV3(nms=True)
     if not ckpt:
         _model.load_state_dict(torch.load(weight_path))
     else:
@@ -244,7 +244,7 @@ def run_training(model, optimizer, dataloader, device, img_size, n_epoch, every_
                 target_lengths = target_lengths.to(device)
                 result = model(imgs)
                 try:
-                    losses = yolo_loss_fn(result, targets, target_lengths, img_size, False)
+                    losses = tiny_yolo_loss_fn(result, targets, target_lengths, img_size, False)
                     losses[0].backward()
                 except RuntimeError as e:
                     logging.error(e)
@@ -346,7 +346,7 @@ def save_checkpoint_weight_file(model, optimizer, epoch, batch, loss, weight_fil
     return
 
 
-def run_yolo_inference(opt):
+def run_tiny_yolo_inference(opt):
     # configure logging
     current_datetime_str = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     log_file_name_by_time = current_datetime_str + ".log"
@@ -361,7 +361,7 @@ def run_yolo_inference(opt):
     dev = config_device(opt.cpu_only)
     make_output_dir(opt.out_dir)
     # load model
-    model = load_yolov3_model(opt.weight_path, dev, ckpt=opt.from_ckpt)
+    model = load_tiny_yolov3_model(opt.weight_path, dev, ckpt=opt.from_ckpt)
     # load data
     dataloader = load_dataset(type='image_folder',
                               img_dir=opt.img_dir,
@@ -386,7 +386,7 @@ def run_yolo_inference(opt):
     return
 
 
-def run_yolo_training(opt):
+def run_tiny_yolo_training(opt):
     # configure logging
     current_datetime_str = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     log_file_name_by_time = current_datetime_str + ".log"
@@ -401,8 +401,8 @@ def run_yolo_training(opt):
     dev = config_device(opt.cpu_only)
     ckpt_dir = '{}/{}'.format(opt.ckpt_dir, current_datetime_str)
     os.makedirs(ckpt_dir, exist_ok=True)
-    model = load_yolov3_model(opt.weight_path, dev, ckpt=opt.from_ckpt, mode='train')
-    finetune_layers = model.yolo_last_n_layers(opt.n_last_layers)
+    model = load_tiny_yolov3_model(opt.weight_path, dev, ckpt=opt.from_ckpt, mode='train')
+    finetune_layers = model.tiny_yolo_last_n_layers(opt.n_last_layers)
 
     for p in model.parameters():
         p.requires_grad = False
@@ -438,9 +438,9 @@ def run_yolo_training(opt):
 if __name__ == '__main__':
     options = parse_args()
     if options.ACTION == 'train':
-        run_yolo_training(options)
+        run_tiny_yolo_training(options)
     elif options.ACTION == 'test':
-        run_yolo_inference(options)
+        run_tiny_yolo_inference(options)
     else:
         raise ValueError("Only action of 'train' or 'test' supported.")
 
